@@ -6,7 +6,8 @@ import time
 import os
 import pandas as pd
 import subprocess
-
+import shutil
+import os
 
 def check_dir(cur_dir):
     if not os.path.exists(cur_dir):
@@ -14,10 +15,9 @@ def check_dir(cur_dir):
     return True
 
 
-def copy_file(src_dir, tar_dir):
-    cmd = 'cp %s %s' % (src_dir, tar_dir)
-    subprocess.check_call(cmd, shell=True)
-
+def copy_file(src, dst):
+    os.makedirs(dst, exist_ok=True)
+    shutil.copy(src, dst)
 
 def find_file(cur_dir, suffix='.ini'):
     for file in os.listdir(cur_dir):
