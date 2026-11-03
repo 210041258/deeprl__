@@ -8,6 +8,9 @@ The project README documents the expected ``main.py`` commands. This helper
 checks that entry point exists, launches training/evaluation, then scans the
 experiment output for CSV and text log metrics. Matplotlib is only needed for
 plot generation; parsed data is also written as CSV.
+
+Lesson plan : https://psc-g.github.io/posts/research/rl/precipice/?utm_source=chatgpt.com
+
 """
 
 from __future__ import annotations
