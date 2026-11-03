@@ -2,73 +2,98 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This repo implements start-of-the-art mutli-agent (decentralized) deep RL algorithms for large-scale traffic signal control in SUMO-simulated environments.
+This repository implements multi-agent deep reinforcement-learning algorithms for traffic-signal control in SUMO-simulated environments. It includes centralized and decentralized cooperation settings, fully connected and LSTM network layers, and IQL, IA2C, and stabilized IA2C (MA2C) methods.
 
-Available cooperation levels:
-* Centralized: a global agent that makes global control w/ global observation, reward.
-* Decentralized: multiple local agents that make local control independently w/ neighborhood information sharing.
+## Environments
 
-Available NN layers:
-Fully-connected, LSTM.
+The project documents three traffic environments:
 
-Available algorithms:
-IQL, IA2C, IA2C with stabilization (called MA2C in this paper). For more advanced algorithms, please check [deeprl_network](https://github.com/cts198859/deeprl_network). 
+- A six-intersection benchmark network.
+- A 5 × 5 traffic grid.
+- A modified Monaco traffic network with 30 signalized intersections.
 
-Available environments:
-* A 6-intersection benchmark traffic network. [Ye, Bao-Lin, et al. "A hierarchical model predictive control approach for signal splits optimization in large-scale urban road networks." IEEE Transactions on Intelligent Transportation Systems 17.8 (2016): 2182-2192.](https://ieeexplore.ieee.org/abstract/document/7406703/)
-* A 5X5 traffic grid. [Chu, Tianshu, Shuhui Qu, and Jie Wang. "Large-scale traffic grid signal control with regional reinforcement learning." American Control Conference (ACC), 2016. IEEE, 2016.](https://ieeexplore.ieee.org/abstract/document/7525014/)
-* A modified Monaco traffic network with 30 signalized intersections. [L. Codeca, J. Härri, "Monaco SUMO Traffic (MoST) Scenario: A 3D Mobility Scenario for Cooperative ITS" SUMO 2018, SUMO User Conference, Simulating Autonomous and Intermodal Transport Systems May 14-16, 2018, Berlin, Germany.](http://www.eurecom.fr/en/publication/5527/download/comsys-publi-5527.pdf) ([code](https://github.com/lcodeca/MoSTScenario))
+Environment files and configuration templates are organized in [`small_grid/`](small_grid/), [`large_grid/`](large_grid/), [`real_net/`](real_net/), and [`config/`](config/).
 
+## Requirements and setup
 
-## Requirements
-* Python3==3.5
-* [Tensorflow](http://www.tensorflow.org/install)==1.12.0
-* [SUMO](http://sumo.dlr.de/wiki/Installing)>=1.1.0
+The original training environment specifies Python 3.5, TensorFlow 1.12.0, and SUMO 1.1.0 or later. Install the project dependencies using [`setup_mac.sh`](setup_mac.sh) or [`setup_ubuntu.sh`](setup_ubuntu.sh). The original code targets SUMO >= 1.1.0; consult the upstream [`sumo-0.32.0` branch](https://github.com/cts198859/deeprl_signal_control/tree/sumo-0.32.0) if you need that older SUMO release.
 
-Required packages can be installed by running `setup_mac.sh` or `setup_ubuntu.sh`. 
+## Training and evaluation
 
-Attention: the code on master branch is for SUMO version >= 1.1.0. Please go to branch [sumo-0.32.0](https://github.com/cts198859/deeprl_signal_control/tree/sumo-0.32.0) if you are using the old SUMO version.
+Prepare the selected environment files and a configuration file in [`config/`](config/) before running. The commands documented by the project are:
 
-## Usages
-First define all hyperparameters in a config file under `[config_dir]`, and create the base directory of experiements `[base_dir]`. Before training, please call `build_file.py` under `[environment_dir]/data/` to generate SUMO network files for `small_grid` and `large_grid` environments.
+```bash
+# Train an agent (ia2c, ma2c, iqll, or iqld)
+python3 main.py --base-dir [base_dir]/[agent] train \
+  --config-dir [config_dir] --test-mode no_test
 
-1. To train a new agent, run
-~~~
-python3 main.py --base-dir [base_dir]/[agent] train --config-dir [config_dir] --test-mode no_test
-~~~
-`[agent]` is from `{ia2c, ma2c, iqll, iqld}`. `no_test` is suggested, since tests will significantly slow down the training speed.
+# View training logs
+ tensorboard --logdir=[base_dir]/log
 
-2. To access tensorboard during training, run
-~~~
-tensorboard --logdir=[base_dir]/log
-~~~
+# Evaluate one or more trained agents on held-out seeds
+python3 main.py --base-dir [base_dir] evaluate \
+  --agents [agents] --evaluation-seeds [seeds]
+```
 
-3. To evaluate and compare trained agents, run
-~~~
-python3 main.py --base-dir [base_dir] evaluate --agents [agents] --evaluation-seeds [seeds]
-~~~
-Evaluation data will be output to `[base_dir]/eva_data`, and make sure evaluation seeds are different from those used in training. Under default evaluation setting, the inference policy of A2C is stochastic whereas that of Q-learning is greedy (deterministic). To explicitly specifiy the inference policy type, pass argument `--evaluation-policy-type [default/stochastic/deterministic]`. Please note running a determinisitc inference policy for A2C may cause the performance loss, due to the violation of "on-policy" learning.   
+Evaluation seeds should be distinct from training seeds. The project documents `default`, `stochastic`, and `deterministic` evaluation policy types; deterministic inference for an on-policy A2C agent may affect performance. See the [original usage notes](README.md#usages) and environment configuration files for details. To launch the SUMO GUI for a demo, add `--demo` to an evaluation command.
 
-4. To visualize the agent behavior, run
-~~~
-python3 main.py --base-dir [base_dir] evaluate --agents [agent] --evaluation-seeds [seed] --demo
-~~~
-It is recommended to have only one agent and one evaluation seed for the demo run. This will launch the SUMO GUI, and `./large_grid/data/view.xml` can be applied to visualize queue length and intersectin delay in edge color and thickness. Below are a few example screenshots.
+## Experiment analysis tools
 
-|   t=1500s          |      t=2500s         |     t=3500s              
-:-------------------:|:--------------------:|:--------------------:
-![](./figs/1500.png) | ![](./figs/2500.png) | ![](./figs/3500.png) 
+The [`experiments/`](experiments/) directory contains run artifacts and two helper scripts. They analyze artifacts/results; they do not create missing evaluation data or establish that a scientific claim is true.
 
-## Reproducibility
-Due to SUMO version change and a few corresponding code modifications (e.g. `tau="0.5"` has to be removed from `vType` to prevent extensive vehicle collisions in simulation), it becomes difficult to reproduce paper results, which are based on SUMO 0.32.0. So we have re-run the experiments using SUMO 1.1.0 and provided the following training plots as reference. The conclusion still remains the same, that is, MA2C ~ IQL-LR > IA2C in large grid and MA2C > IA2C > IQL-LR in Monaco net. Note rather than reproducing exactly the same results, an evaluation is always valid as far as the comparison is fair, that is, fixing env config and seed across agents. 
+### Run, parse, plot, and audit artifacts
 
-|   large grid                   |      Monaco net                   
-:-------------------------------:|:------------------------------:
-![](./figs/large_grid_train.png) | ![](./figs/real_net_train.png)       
+[`experiments/run_experiment.py`](experiments/run_experiment.py) can launch the repository's documented training/evaluation commands, parse numeric CSV/text logs, plot available metrics, and write a qualitative `evidence_report.md`.
+
+```bash
+# Audit existing files only; do not launch training/evaluation
+python experiments/run_experiment.py \
+  --base-dir experiments --skip-train --skip-evaluate
+
+# Request a training/evaluation run and then analyze its outputs
+python experiments/run_experiment.py \
+  --agent ma2c --scenario large --seeds 11 22 33
+```
+
+The launcher expects a root-level `main.py` as described in the original project instructions. If it is unavailable in your checkout, use the analysis-only mode or restore the project's entry point first. Matplotlib is optional; without it, CSV parsing and the evidence report still work. The evidence audit uses heuristic file/text matching. “Evidence found” is an inventory status, not proof of completed runs, fair comparisons, convergence, or improved traffic performance.
+
+### Compare a learned controller with baselines
+
+[`experiments/compare_baselines.py`](experiments/compare_baselines.py) analyzes a CSV of **actual per-seed evaluation results**. It pairs the learned method with fixed-time, adaptive, and MaxPressure controller rows, checks available matching context, and writes `paired_results.csv`, `summary.csv`, and `report.md`.
+
+The input needs one row per controller and evaluation seed, including an algorithm label, a seed, and metric columns. For example:
+
+```csv
+algorithm,seed,scenario,demand_id,simulator,simulator_version,config_hash,mean_travel_time,mean_waiting_time,mean_queue_length,throughput
+ma2c,11,large,weekday,SUMO,1.1,abc123,120,25,8,900
+fixed_time,11,large,weekday,SUMO,1.1,abc123,150,35,12,850
+adaptive,11,large,weekday,SUMO,1.1,abc123,140,31,10,870
+maxpressure,11,large,weekday,SUMO,1.1,abc123,130,28,9,890
+```
+
+Run the comparison with:
+
+```bash
+python experiments/compare_baselines.py --input evaluation.csv
+```
+
+Use the labels in your CSV with `--learned` and `--baselines` if they differ from the defaults. The default metrics are travel time, waiting time, queue length, and throughput. Lower is treated as better for the first three; throughput is treated as higher-is-better. Specify other directions with `--higher-is-better`. Percentage improvements and sample standard deviations are computed across unambiguously paired seeds; a single seed has no sample standard deviation. Missing baseline results are never fabricated.
+
+For a meaningful fairness check, provide and match context columns such as `scenario`, `demand_id` (or `demand_file`), `network`, `simulator`, `simulator_version`, and `config_hash`, in addition to `seed`. Matching metadata helps identify mismatches but does not prove that the simulator was run correctly or that all other conditions were equivalent. Review the generated report and underlying per-seed results before making claims.
+
+The helper scripts use modern Python features and should be run with Python 3.9 or newer. This is separate from the legacy Python/TensorFlow version specified for the original training code.
+
+## Reproducibility and interpretation
+
+For comparisons, keep the network, traffic demand, simulator version, evaluation policy, and evaluation seeds consistent across controllers. Preserve configuration files, checkpoints/policies, logs, and per-seed results. Report metric definitions and units. Do not infer statistical significance or general performance from plots, filenames, or aggregate values alone.
+
+The repository's historical reproducibility discussion and reference training plots are below. They describe the original project's experiments and should not be confused with new results produced by the analysis tools.
 
 ## Citation
-If you find this useful in your research, please cite our paper "Multi-Agent Deep Reinforcement Learning for Large-Scale Traffic Signal Control" ([early access version](https://ieeexplore.ieee.org/document/8667868), [preprint version](https://arxiv.org/pdf/1903.04527.pdf)):
-~~~
+
+If you use the project in research, cite the paper “Multi-Agent Deep Reinforcement Learning for Large-Scale Traffic Signal Control”:
+
+```bibtex
 @article{chu2019multi,
   title={Multi-Agent Deep Reinforcement Learning for Large-Scale Traffic Signal Control},
   author={Chu, Tianshu and Wang, Jie and Codec{\`a}, Lara and Li, Zhaojian},
@@ -76,4 +101,4 @@ If you find this useful in your research, please cite our paper "Multi-Agent Dee
   year={2019},
   publisher={IEEE}
 }
-~~~
+```
