@@ -18,6 +18,7 @@
 # results. SD is sample standard deviation and is NA when fewer than two valid
 # observations exist. Ensure rows represent independent runs/seeds if you
 # interpret the statistics as across-run variability.
+# Rscript experiments/summarize_environment_results.R --input evaluation.csv
 
 options(stringsAsFactors = FALSE)
 
