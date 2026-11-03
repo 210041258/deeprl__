@@ -20,6 +20,12 @@ The default assumes lower travel time, waiting time, and queue length are better
 throughput is treated as higher-is-better. Specify direction explicitly for any
 additional metric. Standard deviation is the sample SD (n-1); it is undefined
 for a single paired seed and is reported as NA.
+
+input : python experiments/compare_baselines.py \
+  --input evaluation.csv \
+  --learned ma2c \
+  --baselines greedy
+
 """
 
 from __future__ import annotations
